@@ -1,140 +1,121 @@
-/* script.js
-   - Smooth scrolling
-   - Reveal-on-scroll
-   - Tiny avatar tilt effect
-   - Lightweight particle background on canvas
-*/
+console.log("Resume website loaded");
 
-/* ------------------- Smooth scrolling ------------------- */
-document.querySelectorAll('a[href^="#"]').forEach(a=>{
-  a.addEventListener('click', e=>{
-    e.preventDefault();
-    const id = a.getAttribute('href').slice(1);
-    const el = document.getElementById(id);
-    if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
-  });
+/* SMOOTH SCROLL */
+document.querySelectorAll("a[href^='#']").forEach(anchor => {
+anchor.addEventListener("click", function(e){
+e.preventDefault();
+document.querySelector(this.getAttribute("href"))
+.scrollIntoView({
+behavior:"smooth"
+});
+});
 });
 
-/* ------------------- Reveal on scroll ------------------- */
-const revealItems = () => {
-  document.querySelectorAll('.section, .project, .timeline-item, .profile-card, .hero-left').forEach(el=>{
-    const rect = el.getBoundingClientRect();
-    const inView = rect.top < (window.innerHeight - 80);
-    if(inView) el.style.transform = 'translateY(0px)', el.style.opacity = 1;
-    else el.style.transform = 'translateY(12px)', el.style.opacity = 0;
-  });
-};
-window.addEventListener('scroll', revealItems, {passive:true});
-window.addEventListener('resize', revealItems);
-document.addEventListener('DOMContentLoaded', ()=>{
-  // initial setup: set hidden state & animate bars
-  document.querySelectorAll('.section, .project, .timeline-item, .profile-card, .hero-left').forEach(el=>{
-    el.style.transition = 'all 600ms cubic-bezier(.2,.9,.2,1)';
-    el.style.transform = 'translateY(12px)';
-    el.style.opacity = 0;
-  });
-  revealItems();
-
-  // animate skill bar fills after short delay
-  setTimeout(()=> {
-    document.querySelectorAll('.bar-fill').forEach(el=>{
-      const w = el.style.width || '80%';
-      el.style.width = '0%';
-      // small stagger
-      setTimeout(()=> el.style.width = w, 120);
-    });
-  }, 600);
+/* SCROLL REVEAL */
+const sections = document.querySelectorAll(".section");
+function revealSections(){
+const trigger = window.innerHeight * 0.85;
+sections.forEach(section => {
+const top = section.getBoundingClientRect().top;
+if(top < trigger){
+section.style.opacity = "1";
+section.style.transform = "translateY(0)";
+}
 });
+}
+window.addEventListener("scroll", revealSections);
+revealSections();
 
-/* ------------------- Profile card tilt ------------------- */
-const card = document.getElementById('profile-card');
-if(card){
-  card.addEventListener('mousemove', (e)=>{
-    const rect = card.getBoundingClientRect();
-    const cx = rect.left + rect.width/2;
-    const cy = rect.top + rect.height/2;
-    const dx = (e.clientX - cx) / (rect.width/2);
-    const dy = (e.clientY - cy) / (rect.height/2);
-    const rx = dy * 6;
-    const ry = dx * -6;
-    card.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg) translateZ(6px)`;
-  });
-  card.addEventListener('mouseleave', ()=> card.style.transform = '');
+/* PARTICLE BACKGROUND WITH CONNECTION LINES */
+const canvas = document.getElementById("particles");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+let particlesArray = [];
+class Particle {
+    constructor(){
+        this.x = Math.random()*canvas.width;
+        this.y = Math.random()*canvas.height;
+        this.size = Math.random()*2 + 1;
+        this.speedX = Math.random()*0.6 - 0.3;
+        this.speedY = Math.random()*0.6 - 0.3;
+    }
+    update(){
+        this.x += this.speedX;
+        this.y += this.speedY;
+
+        if(this.x > canvas.width || this.x < 0) this.speedX *= -1;
+        if(this.y > canvas.height || this.y < 0) this.speedY *= -1;
+    }
+    draw(){
+        ctx.fillStyle = "cyan";
+        ctx.beginPath();
+        ctx.arc(this.x,this.y,this.size,0,Math.PI*2);
+        ctx.fill();
+    }
 }
 
-/* ------------------- Lightweight particle background ------------------- */
-(function initParticles(){
-  const canvas = document.getElementById('bg-canvas');
-  if(!canvas) return;
-  const ctx = canvas.getContext('2d');
-  let w = canvas.width = innerWidth;
-  let h = canvas.height = innerHeight;
-  const particles = [];
-  const COUNT = Math.floor((w*h) / 70000); // scales with screen size
-
-  function rand(min,max){ return Math.random()*(max-min)+min; }
-
-  function create(){
-    for(let i=0;i<COUNT;i++){
-      particles.push({
-        x: Math.random()*w,
-        y: Math.random()*h,
-        vx: rand(-0.15,0.15),
-        vy: rand(-0.05,0.05),
-        r: rand(0.6,2.2),
-        alpha: rand(0.06,0.18)
-      });
+function initParticles(){
+    particlesArray = [];
+    for(let i=0;i<100;i++){
+        particlesArray.push(new Particle());
     }
-  }
-  create();
+}
 
-  function resize(){
-    w = canvas.width = innerWidth;
-    h = canvas.height = innerHeight;
-    // do not refill; keep existing particles
-  }
-  window.addEventListener('resize', resize);
+function connectParticles(){
+    for(let a=0; a<particlesArray.length; a++){
+        for(let b=a; b<particlesArray.length; b++){
+            let dx = particlesArray[a].x - particlesArray[b].x;
+            let dy = particlesArray[a].y - particlesArray[b].y;
 
-  function draw(){
-    ctx.clearRect(0,0,w,h);
-    // subtle gradient tint
-    const g = ctx.createLinearGradient(0,0,w,h);
-    g.addColorStop(0, 'rgba(124,58,237,0.02)');
-    g.addColorStop(1, 'rgba(6,182,212,0.02)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0,0,w,h);
-
-    for(let p of particles){
-      p.x += p.vx;
-      p.y += p.vy;
-      if(p.x < -10) p.x = w+10;
-      if(p.x > w+10) p.x = -10;
-      if(p.y < -10) p.y = h+10;
-      if(p.y > h+10) p.y = -10;
-      ctx.beginPath();
-      ctx.fillStyle = `rgba(255,255,255,${p.alpha})`;
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-      ctx.fill();
-    }
-
-    // lightweight line connections
-    for(let i=0;i<particles.length;i++){
-      for(let j=i+1;j<i+4 && j<particles.length;j++){
-        const a = particles[i], b = particles[j];
-        const dx = a.x-b.x, dy = a.y-b.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if(dist<120){
-          ctx.strokeStyle = `rgba(255,255,255,${0.02 + (0.08*(1 - dist/120))})`;
-          ctx.lineWidth = 0.6;
-          ctx.beginPath();
-          ctx.moveTo(a.x,a.y);
-          ctx.lineTo(b.x,b.y);
-          ctx.stroke();
+            let distance = dx*dx + dy*dy;
+            if(distance < 12000){
+                ctx.strokeStyle = "rgba(0,255,255,0.15)";
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(particlesArray[a].x,particlesArray[a].y);
+                ctx.lineTo(particlesArray[b].x,particlesArray[b].y);
+                ctx.stroke();
+            }
         }
-      }
     }
+}
+function animateParticles(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particlesArray.forEach(p=>{
+        p.update();
+        p.draw();
+    });
+    connectParticles();
+    requestAnimationFrame(animateParticles);
+}
+initParticles();
+animateParticles();
 
-    requestAnimationFrame(draw);
-  }
-  draw();
-})();
+
+/* CUSTOM CURSOR */
+const cursor = document.querySelector(".cursor");
+document.addEventListener("mousemove",(e)=>{
+cursor.style.left = e.clientX + "px";
+cursor.style.top = e.clientY + "px";
+});
+
+
+/* FETCH GITHUB PROJECTS */
+async function loadGitHubRepos(){
+const username = "Farjad9305";
+const response = await fetch(`https://api.github.com/users/${username}/repos`);
+const repos = await response.json();
+const container = document.getElementById("github-projects");
+repos.slice(0,6).forEach(repo => {
+const card = document.createElement("div");
+card.className = "repo-card";
+card.innerHTML = `
+<h3>${repo.name}</h3>
+<p>${repo.description || "No description available"}</p>
+<a href="${repo.html_url}" target="_blank">View Repo</a>
+`;
+container.appendChild(card);
+});
+}
+loadGitHubRepos();
